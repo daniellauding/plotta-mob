@@ -18,12 +18,18 @@ import { Sticky } from '../../lib/types';
 interface FloatingActionButtonProps {
   onNewNote: () => void;
   onImageSelected?: (uri: string) => void;
+  onManageTags?: () => void;
+  onArrange?: () => void;
+  onHelp?: () => void;
   stickies: Sticky[];
 }
 
 export default function FloatingActionButton({
   onNewNote,
   onImageSelected,
+  onManageTags,
+  onArrange,
+  onHelp,
   stickies,
 }: FloatingActionButtonProps) {
   const { theme } = useTheme();
@@ -63,6 +69,30 @@ export default function FloatingActionButton({
     } catch (error) {
       console.error('Error picking image:', error);
       alert('Failed to pick image');
+    }
+  }
+
+  async function handleTakePhoto() {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        alert('Permission to access camera is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        onImageSelected?.(result.assets[0].uri);
+        toggleMenu();
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      alert('Failed to take photo');
     }
   }
 
@@ -153,15 +183,42 @@ export default function FloatingActionButton({
 
   const menuItems = [
     {
+      icon: 'sticky-note',
+      label: 'New Note',
+      onPress: () => {
+        onNewNote();
+        toggleMenu();
+      },
+      color: theme.colors.primary,
+    },
+    {
+      icon: 'camera',
+      label: 'Take Photo',
+      onPress: handleTakePhoto,
+      color: theme.colors.primary,
+    },
+    {
       icon: 'image',
       label: 'Upload Image',
       onPress: handleUploadImage,
       color: theme.colors.primary,
     },
     {
-      icon: 'download',
-      label: 'Import',
-      onPress: handleImportNotes,
+      icon: 'th',
+      label: 'Arrange Notes',
+      onPress: () => {
+        onArrange?.();
+        toggleMenu();
+      },
+      color: theme.colors.primary,
+    },
+    {
+      icon: 'tags',
+      label: 'Manage Tags',
+      onPress: () => {
+        onManageTags?.();
+        toggleMenu();
+      },
       color: theme.colors.primary,
     },
     {
@@ -171,10 +228,16 @@ export default function FloatingActionButton({
       color: theme.colors.primary,
     },
     {
-      icon: 'sticky-note',
-      label: 'New Note',
+      icon: 'download',
+      label: 'Import',
+      onPress: handleImportNotes,
+      color: theme.colors.primary,
+    },
+    {
+      icon: 'question-circle',
+      label: 'Help',
       onPress: () => {
-        onNewNote();
+        onHelp?.();
         toggleMenu();
       },
       color: theme.colors.primary,

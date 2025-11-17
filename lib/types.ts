@@ -18,6 +18,11 @@ export interface Database {
           description: string | null
           owner_id: string
           is_public: boolean
+          theme_color: string | null
+          logo_url: string | null
+          background_url: string | null
+          visibility: 'private' | 'invite_only' | 'public' | null
+          access_password: string | null
         }
         Insert: {
           id?: string
@@ -27,6 +32,11 @@ export interface Database {
           description?: string | null
           owner_id: string
           is_public?: boolean
+          theme_color?: string | null
+          logo_url?: string | null
+          background_url?: string | null
+          visibility?: 'private' | 'invite_only' | 'public' | null
+          access_password?: string | null
         }
         Update: {
           id?: string
@@ -36,6 +46,11 @@ export interface Database {
           description?: string | null
           owner_id?: string
           is_public?: boolean
+          theme_color?: string | null
+          logo_url?: string | null
+          background_url?: string | null
+          visibility?: 'private' | 'invite_only' | 'public' | null
+          access_password?: string | null
         }
       }
       stickies: {
@@ -59,6 +74,7 @@ export interface Database {
           created_by: string
           priority: 'low' | 'medium' | 'high' | 'critical' | null
           due_date: string | null
+          status: 'todo' | 'in_progress' | 'done' | null
         }
         Insert: {
           id?: string
@@ -80,6 +96,7 @@ export interface Database {
           created_by: string
           priority?: 'low' | 'medium' | 'high' | 'critical' | null
           due_date?: string | null
+          status?: 'todo' | 'in_progress' | 'done' | null
         }
         Update: {
           id?: string
@@ -101,6 +118,7 @@ export interface Database {
           created_by?: string
           priority?: 'low' | 'medium' | 'high' | 'critical' | null
           due_date?: string | null
+          status?: 'todo' | 'in_progress' | 'done' | null
         }
       }
       sticky_votes: {

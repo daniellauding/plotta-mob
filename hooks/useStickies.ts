@@ -32,7 +32,16 @@ export function useStickies(projectId: string | null) {
         (payload) => {
           console.log('📡 Realtime update:', payload.eventType, payload.new?.id);
           if (payload.eventType === 'INSERT') {
-            setStickies((prev) => [...prev, payload.new as Sticky]);
+            console.log('➕ Adding new sticky to UI:', payload.new?.title);
+            setStickies((prev) => {
+              // Check if already exists (prevent duplicates)
+              const exists = prev.some(s => s.id === payload.new.id);
+              if (exists) {
+                console.log('⚠️ Sticky already exists, skipping');
+                return prev;
+              }
+              return [...prev, payload.new as Sticky];
+            });
           } else if (payload.eventType === 'UPDATE') {
             console.log('✏️ Updating sticky:', payload.new?.title);
             setStickies((prev) =>
@@ -41,13 +50,22 @@ export function useStickies(projectId: string | null) {
               )
             );
           } else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ Removing sticky from UI:', payload.old?.id);
             setStickies((prev) =>
               prev.filter((sticky) => sticky.id !== payload.old.id)
             );
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('📡 Subscription status:', status);
+        if (err) {
+          console.error('❌ Subscription error:', err);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to real-time updates for project:', projectId);
+        }
+      });
 
     return () => {
       subscription.unsubscribe();

@@ -1,14 +1,18 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, ScrollView, Image, ActivityIndicator, ActionSheetIOS, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { router } from 'expo-router';
+import { supabase } from '../../lib/supabase';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
+  const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || null);
+  const [uploading, setUploading] = useState(false);
 
   async function handleSignOut() {
     Alert.alert(
@@ -32,13 +36,167 @@ export default function ProfileScreen() {
     );
   }
 
+  async function uploadAvatar(uri: string) {
+    try {
+      setUploading(true);
+
+      // Convert image to blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Create file name
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${user!.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob, {
+          contentType: `image/${fileExt}`,
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update user metadata
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl },
+      });
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      Alert.alert('Success', 'Avatar updated successfully!');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to upload avatar');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function pickImage(fromCamera: boolean) {
+    try {
+      // Request permissions
+      if (fromCamera) {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Camera permission is required to take photos');
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Photo library permission is required to select photos');
+          return;
+        }
+      }
+
+      // Launch picker
+      const result = fromCamera
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  }
+
+  function showAvatarOptions() {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library', avatarUrl ? 'Remove Photo' : ''].filter(Boolean),
+          destructiveButtonIndex: avatarUrl ? 3 : undefined,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            pickImage(true); // Camera
+          } else if (buttonIndex === 2) {
+            pickImage(false); // Library
+          } else if (buttonIndex === 3 && avatarUrl) {
+            removeAvatar();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Change Avatar',
+        'Choose an option',
+        [
+          { text: 'Take Photo', onPress: () => pickImage(true) },
+          { text: 'Choose from Library', onPress: () => pickImage(false) },
+          ...(avatarUrl ? [{ text: 'Remove Photo', onPress: removeAvatar, style: 'destructive' as const }] : []),
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  }
+
+  async function removeAvatar() {
+    try {
+      setUploading(true);
+
+      // Update user metadata to remove avatar
+      const { error } = await supabase.auth.updateUser({
+        data: { avatar_url: null },
+      });
+
+      if (error) throw error;
+
+      setAvatarUrl(null);
+      Alert.alert('Success', 'Avatar removed successfully!');
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      Alert.alert('Error', 'Failed to remove avatar');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top', 'left', 'right']}>
       <ScrollView style={{ flex: 1 }}>
         <View style={[styles.header, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.muted }]}>
-            <FontAwesome name="user" size={48} color={theme.colors.primary} />
-          </View>
+          <TouchableOpacity
+            onPress={showAvatarOptions}
+            disabled={uploading}
+            style={[styles.avatarContainer]}
+          >
+            <View style={[styles.avatar, { backgroundColor: theme.colors.muted }]}>
+              {uploading ? (
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              ) : avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <FontAwesome name="user" size={48} color={theme.colors.primary} />
+              )}
+            </View>
+            <View style={[styles.avatarBadge, { backgroundColor: theme.colors.primary }]}>
+              <FontAwesome name="camera" size={14} color={theme.colors.primaryForeground} />
+            </View>
+          </TouchableOpacity>
           <Text style={[styles.email, { color: theme.colors.foreground }]}>{user?.email}</Text>
           <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>Plotta Mobile User</Text>
         </View>
@@ -63,16 +221,6 @@ export default function ProfileScreen() {
 
         <View style={[styles.section, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border, borderBottomColor: theme.colors.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.mutedForeground, backgroundColor: theme.colors.muted }]}>App</Text>
-
-          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.colors.border }]} onPress={toggleTheme}>
-            <FontAwesome name={isDark ? "sun-o" : "moon-o"} size={20} color={theme.colors.mutedForeground} style={styles.icon} />
-            <Text style={[styles.menuText, { color: theme.colors.foreground }]}>{isDark ? 'Light Mode' : 'Dark Mode'}</Text>
-            <FontAwesome
-              name={isDark ? "toggle-on" : "toggle-off"}
-              size={24}
-              color={isDark ? theme.colors.primary : theme.colors.mutedForeground}
-            />
-          </TouchableOpacity>
 
           <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.colors.border }]}>
             <FontAwesome name="bell-o" size={20} color={theme.colors.mutedForeground} style={styles.icon} />
@@ -109,6 +257,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatar: {
     width: 96,
     height: 96,
@@ -116,7 +268,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   email: {
     fontSize: 20,

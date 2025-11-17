@@ -24,25 +24,40 @@ import { useTheme } from '../../hooks/useTheme';
 import { useTags } from '../../hooks/useTags';
 import StickyNote from '../../components/canvas/StickyNote';
 import TagManager from '../../components/canvas/TagManager';
-import FilterBar from '../../components/canvas/FilterBar';
+import { FilterBar } from '../../components/canvas/FilterBar';
 import ViewModeSelector, { ViewMode } from '../../components/canvas/ViewModeSelector';
 import ProjectDrawer from '../../components/canvas/ProjectDrawer';
 import FloatingActionButton from '../../components/canvas/FloatingActionButton';
+import ProjectSettings from '../../components/canvas/ProjectSettings';
+import AIAssistant from '../../components/canvas/AIAssistant';
+import ArrangeDialog from '../../components/canvas/ArrangeDialog';
+import HelpModal from '../../components/canvas/HelpModal';
 import { STICKY_COLORS, getStickyColor, StickyColorValue } from '../../lib/theme';
 import { StickyColor } from '../../lib/types';
+import { useProjects } from '../../hooks/useProjects';
 
 export default function CanvasScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { stickies, createSticky, loading } = useStickies(id);
   const { tags } = useTags(id);
   const { theme, colorScheme } = useTheme();
+  const { projects } = useProjects();
+
+  const currentProject = projects.find(p => p.id === id);
 
   const [showNewNote, setShowNewNote] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [showProjectDrawer, setShowProjectDrawer] = useState(false);
+  const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showArrangeDialog, setShowArrangeDialog] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [selectedColor, setSelectedColor] = useState<StickyColorValue>('yellow');
+  const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedDueDate, setSelectedDueDate] = useState<Date | null>(null);
   const [creating, setCreating] = useState(false);
   const [maxZIndex, setMaxZIndex] = useState(0);
 
@@ -268,21 +283,38 @@ export default function CanvasScreen() {
 
     try {
       setCreating(true);
+      console.log('🎨 Creating note with:', {
+        title: newNoteTitle,
+        content: newNoteContent,
+        color: selectedColor,
+        priority: selectedPriority,
+        status: selectedStatus,
+        due_date: selectedDueDate?.toISOString()
+      });
       await createSticky({
         title: newNoteTitle,
         content: newNoteContent,
         color: selectedColor,
-        position_x: Math.random() * 300,
-        position_y: Math.random() * 300,
+        position_x: Math.round(Math.random() * 300),
+        position_y: Math.round(Math.random() * 300),
         width: 300,
         height: 250,
+        priority: selectedPriority,
+        status: selectedStatus,
+        due_date: selectedDueDate?.toISOString() || null,
       });
+      console.log('✅ Note created successfully');
       setNewNoteTitle('');
       setNewNoteContent('');
       setShowNewNote(false);
       setSelectedColor('yellow');
+      setSelectedPriority(null);
+      setSelectedStatus(null);
+      setSelectedDueDate(null);
     } catch (error) {
-      Alert.alert('Error', 'Failed to create note');
+      console.error('❌ Failed to create note:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create note';
+      Alert.alert('Error', `Failed to create note: ${errorMessage}`);
     } finally {
       setCreating(false);
     }
@@ -295,14 +327,48 @@ export default function CanvasScreen() {
         title: 'Image',
         content: `![Image](${imageUri})`,
         color: 'default',
-        position_x: Math.random() * 300,
-        position_y: Math.random() * 300,
+        position_x: Math.round(Math.random() * 300),
+        position_y: Math.round(Math.random() * 300),
         width: 300,
         height: 300,
       });
       Alert.alert('Success', 'Image added to canvas');
     } catch (error) {
       Alert.alert('Error', 'Failed to add image');
+    }
+  }
+
+  async function handleCreateStickyFromAI(content: { title: string; content: string }) {
+    try {
+      await createSticky({
+        title: content.title,
+        content: content.content,
+        color: 'default',
+        position_x: Math.round(Math.random() * 300),
+        position_y: Math.round(Math.random() * 300),
+        width: 300,
+        height: 300,
+      });
+    } catch (error) {
+      console.error('Error creating AI note:', error);
+      Alert.alert('Error', 'Failed to create AI-generated note');
+    }
+  }
+
+  async function handleArrange(arrangedStickies: any[]) {
+    try {
+      // Update each sticky's position in the database
+      for (const sticky of arrangedStickies) {
+        await createSticky({
+          ...sticky,
+          position_x: Math.round(sticky.position_x),
+          position_y: Math.round(sticky.position_y),
+        });
+      }
+      Alert.alert('Success', 'Notes arranged successfully');
+    } catch (error) {
+      console.error('Error arranging notes:', error);
+      Alert.alert('Error', 'Failed to arrange notes');
     }
   }
 
@@ -352,6 +418,20 @@ export default function CanvasScreen() {
               <TouchableOpacity onPress={() => setShowTagManager(true)}>
                 <FontAwesome
                   name="tags"
+                  size={20}
+                  color={theme.colors.foreground}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowAIAssistant(true)}>
+                <FontAwesome
+                  name="magic"
+                  size={20}
+                  color={theme.colors.primary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowProjectSettings(true)}>
+                <FontAwesome
+                  name="cog"
                   size={20}
                   color={theme.colors.foreground}
                 />
@@ -414,10 +494,45 @@ export default function CanvasScreen() {
         currentProjectId={id}
       />
 
+      {/* Project Settings */}
+      {currentProject && (
+        <ProjectSettings
+          visible={showProjectSettings}
+          onClose={() => setShowProjectSettings(false)}
+          project={currentProject}
+        />
+      )}
+
+      {/* AI Assistant */}
+      <AIAssistant
+        visible={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        stickies={stickies}
+        projectId={id}
+        onCreateSticky={handleCreateStickyFromAI}
+      />
+
+      {/* Arrange Dialog */}
+      <ArrangeDialog
+        visible={showArrangeDialog}
+        onClose={() => setShowArrangeDialog(false)}
+        stickies={filteredStickies}
+        onArrange={handleArrange}
+      />
+
+      {/* Help Modal */}
+      <HelpModal
+        visible={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
+
       {/* Floating Action Button Menu */}
       <FloatingActionButton
         onNewNote={() => setShowNewNote(true)}
         onImageSelected={handleImageSelected}
+        onManageTags={() => setShowTagManager(true)}
+        onArrange={() => setShowArrangeDialog(true)}
+        onHelp={() => setShowHelp(true)}
         stickies={filteredStickies}
       />
 
@@ -522,6 +637,128 @@ export default function CanvasScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            <Text style={[styles.colorLabel, { color: theme.colors.foreground, marginTop: 16 }]}>
+              Priority (Optional)
+            </Text>
+            <View style={styles.colorPicker}>
+              {[
+                { value: 'low', label: 'Low', color: '#10b981' },
+                { value: 'medium', label: 'Medium', color: '#f59e0b' },
+                { value: 'high', label: 'High', color: '#f97316' },
+                { value: 'critical', label: 'Critical', color: '#ef4444' },
+              ].map((priority) => (
+                <TouchableOpacity
+                  key={priority.value}
+                  style={[
+                    styles.priorityButton,
+                    {
+                      backgroundColor: selectedPriority === priority.value ? priority.color : theme.colors.muted,
+                      borderWidth: selectedPriority === priority.value ? 2 : 1,
+                      borderColor: selectedPriority === priority.value ? priority.color : theme.colors.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedPriority(selectedPriority === priority.value ? null : priority.value)}
+                  disabled={creating}
+                >
+                  <Text style={[
+                    styles.priorityText,
+                    { color: selectedPriority === priority.value ? '#fff' : theme.colors.foreground }
+                  ]}>
+                    {priority.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.colorLabel, { color: theme.colors.foreground, marginTop: 16 }]}>
+              Status (Optional)
+            </Text>
+            <View style={styles.colorPicker}>
+              {[
+                { value: 'todo', label: 'To Do', color: '#6b7280' },
+                { value: 'in_progress', label: 'In Progress', color: '#f59e0b' },
+                { value: 'done', label: 'Done', color: '#10b981' },
+              ].map((status) => (
+                <TouchableOpacity
+                  key={status.value}
+                  style={[
+                    styles.priorityButton,
+                    {
+                      backgroundColor: selectedStatus === status.value ? status.color : theme.colors.muted,
+                      borderWidth: selectedStatus === status.value ? 2 : 1,
+                      borderColor: selectedStatus === status.value ? status.color : theme.colors.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedStatus(selectedStatus === status.value ? null : status.value)}
+                  disabled={creating}
+                >
+                  <Text style={[
+                    styles.priorityText,
+                    { color: selectedStatus === status.value ? '#fff' : theme.colors.foreground }
+                  ]}>
+                    {status.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.colorLabel, { color: theme.colors.foreground, marginTop: 16 }]}>
+              Due Date (Optional)
+            </Text>
+            <View style={styles.colorPicker}>
+              {[
+                { label: 'Today', days: 0 },
+                { label: 'Tomorrow', days: 1 },
+                { label: 'This Week', days: 7 },
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.label}
+                  style={[
+                    styles.priorityButton,
+                    {
+                      backgroundColor: selectedDueDate ? theme.colors.primary : theme.colors.muted,
+                      borderWidth: selectedDueDate ? 2 : 1,
+                      borderColor: selectedDueDate ? theme.colors.primary : theme.colors.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() + option.days);
+                    setSelectedDueDate(date);
+                  }}
+                  disabled={creating}
+                >
+                  <Text style={[
+                    styles.priorityText,
+                    { color: selectedDueDate ? '#fff' : theme.colors.foreground }
+                  ]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {selectedDueDate && (
+                <TouchableOpacity
+                  style={[
+                    styles.priorityButton,
+                    {
+                      backgroundColor: theme.colors.destructive,
+                      borderWidth: 1,
+                      borderColor: theme.colors.destructive,
+                    },
+                  ]}
+                  onPress={() => setSelectedDueDate(null)}
+                  disabled={creating}
+                >
+                  <FontAwesome name="times" size={14} color={theme.colors.destructiveForeground} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {selectedDueDate && (
+              <Text style={[styles.dueDateDisplay, { color: theme.colors.mutedForeground }]}>
+                Due: {selectedDueDate.toLocaleDateString()}
+              </Text>
+            )}
           </ScrollView>
         </View>
       </Modal>
@@ -619,5 +856,22 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  priorityButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  priorityText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dueDateDisplay: {
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

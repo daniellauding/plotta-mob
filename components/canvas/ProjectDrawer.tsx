@@ -79,14 +79,6 @@ export default function ProjectDrawer({ visible, onClose, currentProjectId }: Pr
           >
             {item.name}
           </Text>
-          {item.description && (
-            <Text
-              style={[styles.projectDescription, { color: theme.colors.mutedForeground }]}
-              numberOfLines={1}
-            >
-              {item.description}
-            </Text>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -214,10 +206,6 @@ const styles = StyleSheet.create({
   },
   projectName: {
     fontSize: 16,
-    marginBottom: 2,
-  },
-  projectDescription: {
-    fontSize: 12,
   },
   empty: {
     alignItems: 'center',

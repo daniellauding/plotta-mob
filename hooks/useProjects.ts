@@ -71,7 +71,7 @@ export function useProjects() {
     }
   }
 
-  async function createProject(name: string, description?: string) {
+  async function createProject(name: string) {
     if (!user) return;
 
     try {
@@ -79,7 +79,6 @@ export function useProjects() {
         .from('projects')
         .insert({
           name,
-          description: description || null,
           owner_id: user.id,
         })
         .select()

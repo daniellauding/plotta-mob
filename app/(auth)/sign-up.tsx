@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
+  const { theme } = useTheme();
 
   async function handleSignUp() {
     if (!email || !password || !confirmPassword) {
@@ -54,15 +56,16 @@ export default function SignUpScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Sign up to get started</Text>
+        <Text style={[styles.title, { color: theme.colors.foreground }]}>Create Account</Text>
+        <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>Sign up to get started</Text>
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.colors.card, color: theme.colors.foreground, borderColor: theme.colors.border }]}
           placeholder="Email"
+          placeholderTextColor={theme.colors.mutedForeground}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -71,8 +74,9 @@ export default function SignUpScreen() {
         />
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.colors.card, color: theme.colors.foreground, borderColor: theme.colors.border }]}
           placeholder="Password"
+          placeholderTextColor={theme.colors.mutedForeground}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -80,8 +84,9 @@ export default function SignUpScreen() {
         />
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.colors.card, color: theme.colors.foreground, borderColor: theme.colors.border }]}
           placeholder="Confirm Password"
+          placeholderTextColor={theme.colors.mutedForeground}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
@@ -89,21 +94,21 @@ export default function SignUpScreen() {
         />
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.colors.primary }, loading && styles.buttonDisabled]}
           onPress={handleSignUp}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.colors.primaryForeground} />
           ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.primaryForeground }]}>Sign Up</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.links}>
           <Link href="/(auth)/sign-in" asChild>
             <TouchableOpacity>
-              <Text style={styles.link}>Already have an account? Sign in</Text>
+              <Text style={[styles.link, { color: theme.colors.primary }]}>Already have an account? Sign in</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -115,7 +120,6 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     flex: 1,
@@ -130,21 +134,17 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 32,
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   button: {
-    backgroundColor: '#007AFF',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -154,7 +154,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -162,7 +161,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   link: {
-    color: '#007AFF',
     textAlign: 'center',
     fontSize: 14,
   },

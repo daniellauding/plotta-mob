@@ -11,6 +11,7 @@ import {
   Animated,
   ScrollView,
   Platform,
+  Image,
 } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Ionicons } from '@expo/vector-icons';
@@ -442,6 +443,22 @@ export default function StickyNote({ sticky, maxZIndex, onBringToFront }: Sticky
                         borderLeftColor: theme.colors.border,
                         paddingLeft: 12,
                         paddingVertical: 8,
+                      },
+                    }}
+                    rules={{
+                      image: (node, children, parent, styles) => {
+                        return (
+                          <Image
+                            key={node.key}
+                            source={{ uri: node.attributes.src }}
+                            style={{
+                              width: '100%',
+                              height: 200,
+                              resizeMode: 'contain',
+                              marginVertical: 8,
+                            }}
+                          />
+                        );
                       },
                     }}
                   >

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/lib/theme';
+import { useTheme } from '../../hooks/useTheme';
 import { Tag } from '@/lib/types';
 
 interface FilterBarProps {
@@ -40,11 +40,16 @@ export function FilterBar({
   onDueDatesChange,
   onClearAll,
 }: FilterBarProps) {
-  const theme = useTheme();
+  const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'tags' | 'priority' | 'date'>('tags');
 
   const totalFilters = selectedTagIds.length + selectedPriorities.length + selectedDueDates.length;
+
+  // Safety check - return null if theme is not loaded yet
+  if (!theme || !theme.colors) {
+    return null;
+  }
 
   const toggleTag = (tagId: string) => {
     if (selectedTagIds.includes(tagId)) {
@@ -76,8 +81,8 @@ export function FilterBar({
         style={[styles.filterButton, { backgroundColor: theme.colors.background }]}
         onPress={() => setModalVisible(true)}
       >
-        <Ionicons name="filter" size={20} color={theme.colors.text} />
-        <Text style={[styles.filterText, { color: theme.colors.text }]}>
+        <Ionicons name="filter" size={20} color={theme.colors.foreground} />
+        <Text style={[styles.filterText, { color: theme.colors.foreground }]}>
           Filters
           {totalFilters > 0 && ` (${totalFilters})`}
         </Text>
@@ -132,9 +137,9 @@ export function FilterBar({
           <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Filters</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>Filters</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.text} />
+                <Ionicons name="close" size={24} color={theme.colors.foreground} />
               </TouchableOpacity>
             </View>
 
@@ -269,7 +274,7 @@ export function FilterBar({
                     setModalVisible(false);
                   }}
                 >
-                  <Text style={[styles.clearButtonText, { color: theme.colors.text }]}>
+                  <Text style={[styles.clearButtonText, { color: theme.colors.foreground }]}>
                     Clear All Filters
                   </Text>
                 </TouchableOpacity>

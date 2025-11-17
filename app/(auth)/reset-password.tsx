@@ -12,11 +12,13 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function ResetPasswordScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { resetPassword } = useAuth();
+  const { theme } = useTheme();
 
   async function handleResetPassword() {
     if (!email) {
@@ -42,17 +44,18 @@ export default function ResetPasswordScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: theme.colors.foreground }]}>Reset Password</Text>
+        <Text style={[styles.subtitle, { color: theme.colors.mutedForeground }]}>
           Enter your email and we'll send you a link to reset your password
         </Text>
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.colors.card, color: theme.colors.foreground, borderColor: theme.colors.border }]}
           placeholder="Email"
+          placeholderTextColor={theme.colors.mutedForeground}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -61,21 +64,21 @@ export default function ResetPasswordScreen() {
         />
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.colors.primary }, loading && styles.buttonDisabled]}
           onPress={handleResetPassword}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.colors.primaryForeground} />
           ) : (
-            <Text style={styles.buttonText}>Send Reset Link</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.primaryForeground }]}>Send Reset Link</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.links}>
           <Link href="/(auth)/sign-in" asChild>
             <TouchableOpacity>
-              <Text style={styles.link}>Back to sign in</Text>
+              <Text style={[styles.link, { color: theme.colors.primary }]}>Back to sign in</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -87,7 +90,6 @@ export default function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     flex: 1,
@@ -102,21 +104,17 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 32,
     textAlign: 'center',
   },
   input: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   button: {
-    backgroundColor: '#007AFF',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -126,7 +124,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -134,7 +131,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   link: {
-    color: '#007AFF',
     textAlign: 'center',
     fontSize: 14,
   },

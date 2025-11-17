@@ -79,10 +79,10 @@ export default function ViewModeSelector({ mode, onChange }: ViewModeSelectorPro
           size={18}
           color={theme.colors.primary}
         />
-        <Text style={[styles.buttonText, { color: theme.colors.text }]}>
+        <Text style={[styles.buttonText, { color: theme.colors.foreground }]}>
           {currentOption?.label}
         </Text>
-        <Ionicons name="chevron-down" size={16} color={theme.colors.text} />
+        <Ionicons name="chevron-down" size={16} color={theme.colors.foreground} />
       </TouchableOpacity>
 
       <Modal
@@ -94,11 +94,11 @@ export default function ViewModeSelector({ mode, onChange }: ViewModeSelectorPro
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.foreground }]}>
                 View Mode
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.text} />
+                <Ionicons name="close" size={24} color={theme.colors.foreground} />
               </TouchableOpacity>
             </View>
 
@@ -121,7 +121,7 @@ export default function ViewModeSelector({ mode, onChange }: ViewModeSelectorPro
                       <Ionicons
                         name={option.icon}
                         size={24}
-                        color={isSelected ? theme.colors.primary : theme.colors.text}
+                        color={isSelected ? theme.colors.primary : theme.colors.foreground}
                       />
                     </View>
                     <View style={styles.optionContent}>
@@ -131,14 +131,14 @@ export default function ViewModeSelector({ mode, onChange }: ViewModeSelectorPro
                           {
                             color: isSelected
                               ? theme.colors.primary
-                              : theme.colors.text,
+                              : theme.colors.foreground,
                           },
                         ]}
                       >
                         {option.label}
                       </Text>
                       <Text
-                        style={[styles.optionDescription, { color: theme.colors.subtext }]}
+                        style={[styles.optionDescription, { color: theme.colors.mutedForeground }]}
                       >
                         {option.description}
                       </Text>
