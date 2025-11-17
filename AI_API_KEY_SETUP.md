@@ -2,7 +2,9 @@
 
 ## Quick Setup (2 Options)
 
-### Option 1: Add to .env File (Recommended)
+### Option 1: Add to .env File (Recommended for Development)
+
+⚠️ **SECURITY WARNING:** The `.env` file is for local development ONLY and is ignored by git. NEVER commit this file or share it with anyone!
 
 **1. Open `.env` file**
 
@@ -21,6 +23,8 @@ EXPO_PUBLIC_DEFAULT_AI_PROVIDER=openai
 **3. Restart the app** (kill and reopen)
 
 **4. Done!** The app will automatically use your key from .env
+
+⚠️ **IMPORTANT:** Make sure `.env` is listed in `.gitignore` to prevent accidentally committing your API keys!
 
 ### Option 2: Save in the App
 
